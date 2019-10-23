@@ -75,6 +75,6 @@ def modify_filename_through_folder(dir_path):
 
 
 if __name__ == '__main__':
-    dir_path = "G:\downloads/27 机器学习入门篇2"
+    dir_path = "G:\downloads/28 机器学习提升篇"
     modify_filename_through_folder(dir_path)
     # print(os.listdir(dir_path))
