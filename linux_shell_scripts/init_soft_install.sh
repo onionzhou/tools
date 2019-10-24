@@ -1,7 +1,7 @@
 #!/bin/bash
 PYTHON_PACKAGE='Python-3.6.5.tgz'
 
-#python 包安装 
+#python 包安装 ，将python安装包和脚本放在同一目录
 #路径 /usr/local
 function install_python(){
     soft=$1
@@ -66,8 +66,8 @@ function install_ipython(){
 }
 #安装python相关依赖
 function init_install_python(){
-	#install_python $PYTHON_PACKAGE
-	#modify_pip_source
+	install_python $PYTHON_PACKAGE
+	modify_pip_source
 	install_ipython
 }
 #########################################################
