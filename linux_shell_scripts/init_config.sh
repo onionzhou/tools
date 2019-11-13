@@ -87,8 +87,13 @@ function modify_centos7_yumsource(){
 function cmd_install(){
 	#lsb_release 
 	yum install -y redhat-lsb
-	#sar 
+	#sar iostat  
 	yum -y install sysstat
+	#network Monitoring
+	yum -y install iptraf
+	#disk io test tools 
+	yum install libaio-devel fio 
+	
 }
 
 function main(){
