@@ -29,3 +29,53 @@ function centos_command(){
 	systemctl disable firewalld.service
 
 }
+
+function git_command(){
+	#git 代理设置
+	git config --global https.proxy 'http://127.0.0.1:1080'
+
+	git config --global https.proxy 'https://127.0.0.1:1080'
+
+	git config --global http.proxy  'socks5://127.0.0.1:10808' 
+
+	git config --global https.proxy 'socks5://127.0.0.1:10808'
+	#git 取消代理
+	git config --global --unset http.proxy
+
+	git config --global --unset https.proxy
+
+}
+#git 批量修改已经提交历史的代码的的用户和邮箱
+function git_modify_user_email(){
+
+	1. git clone --bare https://github.com/onionzhou/tools.git <你需要修改的工程>
+	2. cd tools.git
+	3. 
+	#!/bin/sh
+	git filter-branch --env-filter '
+
+	OLD_EMAIL="旧的email地址"
+	CORRECT_NAME="正确的用户"
+	CORRECT_EMAIL="新的email地址"
+
+	if [ "$GIT_COMMITTER_EMAIL" = "$OLD_EMAIL" ]
+	then
+		export GIT_COMMITTER_NAME="$CORRECT_NAME"
+		export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
+	fi
+	if [ "$GIT_AUTHOR_EMAIL" = "$OLD_EMAIL" ]
+	then
+		export GIT_AUTHOR_NAME="$CORRECT_NAME"
+		export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
+	fi
+	' --tag-name-filter cat -- --branches --tags
+
+	4.  git push --force --tags origin 'refs/heads/*'   # push to  github
+	#删除刚clone 的工程
+	5. cd .. ; rm -rf tools.git
+	
+}
+
+
+
+
