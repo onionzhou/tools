@@ -16,6 +16,20 @@ function command(){
 	nginx -s quit  #待nginx进程处理任务完毕后停止
 	nginx -s stop #停止
 	nginx   #启动 
+	
+	#rpm 相关指令
+	rpm -qa | grep php
+	rpm -e   #卸载
+	rpm -i   #安装
+	#yum  相关指令 
+	yum install 
+	yum update 
+	yum remove  
+	yum search 
+	yum list | grep php
+	yum clean all
+	yum makecache 
+	
 }
 
 function centos_command(){
