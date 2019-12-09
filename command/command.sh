@@ -30,6 +30,17 @@ function command(){
 	yum clean all
 	yum makecache 
 	
+	#vim 相关操作 
+	# :3,5 copy 6  #多行复制
+	
+}
+function gunicorn(){
+	#启动命令
+	/usr/local/bin/python3.6 /usr/local/bin/gunicorn -w 2 \
+	--log-level info --access-logfile /usr/local/app/gun_log/access.log --error-logfile \
+	/usr/local/app/gun_log/error.log -b 127.0.0.1:8000 blog:app -D
+	
+	#gunicorn -b 0.0.0.0:8001 httpbin:app 
 }
 
 function centos_command(){
