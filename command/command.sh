@@ -40,7 +40,7 @@ function gunicorn(){
 	--log-level info --access-logfile /usr/local/app/gun_log/access.log --error-logfile \
 	/usr/local/app/gun_log/error.log -b 127.0.0.1:8000 blog:app -D
 	
-	#gunicorn -b 0.0.0.0:8001 httpbin:app 
+	#gunicorn --log-level info --access-logfile /var/log/httpbin/access.log --error-logfile /var/log/httpbin/error.log -b 0.0.0.0:8001 httpbin:app 
 }
 
 function centos_command(){
@@ -68,6 +68,15 @@ function git_command(){
 	git config --global --unset http.proxy
 
 	git config --global --unset https.proxy
+	
+	#git 修改commit 注释
+	git commit --amend
+	
+	#git 统计代码行数
+	#added lines: xxx, removed lines: xx, total lines: xxx
+	git log --author="onionzhou" \
+	--pretty=tformat: --numstat | \
+	awk '{ add += $1; subs += $2; loc += $1 - $2 } END { printf "added lines: %s, removed lines: %s, total lines: %s\n", add, subs, loc }' -
 
 }
 #git 批量修改已经提交历史的代码的的用户和邮箱
