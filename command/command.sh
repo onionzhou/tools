@@ -52,6 +52,14 @@ function centos_command(){
 
 	#禁止firewall开机启动
 	systemctl disable firewalld.service
+	#
+	firewall-cmd --zone=public --add-port=29398/tcp --permanent   # 开放29398端口
+
+	firewall-cmd --zone=public --remove-port=29398/tcp --permanent  #关闭29398端口
+
+	firewall-cmd --reload   # 配置重载
+	#查看防火墙所有端口
+	firewall-cmd --zone=public --list-ports
 
 }
 
