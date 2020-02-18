@@ -92,7 +92,12 @@ function cmd_install(){
 	#network Monitoring
 	yum -y install iptraf
 	#disk io test tools 
-	yum install libaio-devel fio 
+	yum install libaio-devel fio
+	#host dependence
+	yum -y install zlib*
+	yum install pcre-devel -y
+	yum install pcre -y
+	yum install openssl openssl-devel -y
 	
 }
 

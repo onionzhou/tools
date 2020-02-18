@@ -25,42 +25,68 @@ function install_python(){
 	
 	make&&make install
 	
-	[ 0 -eq $? ] && echo "install python successfull! " \
-				|| echo " install python failed!!"
+	if [ 0 -eq $? ];then
+		echo "install python successfull! " >>install.log 
+	else
+		echo " install python failed!!" >> install.log
+		exit -1
+	fi
 }
 
 #修改pip 源
 function modify_pip_source(){
 
 	[ ! -d ~/.pip ] && {
-		echo "create ~/.pip "
+		echo "create ~/.pip " >> install.log
 		mkdir -p ~/.pip
 	} 
 	
 	if [ ! -f ~/.pip/pip.conf ]
 	then
-		echo "create ~/.pip/pip.conf "	
+		echo "create ~/.pip/pip.conf "	>>install.log
 		touch  ~/.pip/pip.conf
 	else
 		mv ~/.pip/pip.conf ~/.pip/pip.conf.bak 
 		touch  ~/.pip/pip.conf
 	fi 
-	
+	echo "write conf to pip.conf" >> install.log
 	echo  >> ~/.pip/pip.conf
 	echo "[global]" >> ~/.pip/pip.conf
 	echo "index-url = https://pypi.tuna.tsinghua.edu.cn/simple" >> ~/.pip/pip.conf
 
 }
 
+function install_pip(){
+
+	wget --no-check-certific ate https://pypi.python.org/packages/source/p/pip/pip-10.0.1.tar.gz >>/dev/null
+	tar -zvxf pip-10.0.1.tar.gz >> /dev/null
+	cd pip.10.0.1
+	python3 setup.py build
+	python3 setup.py install
+	
+	if [ 0 -eq $? ];then
+		echo "install pip successfull! " >>install.log 
+	else
+		echo " install pip failed!!" >> install.log
+		exit -1
+	fi
+
+}
+
 function install_ipython(){
 	cmd=$(which pip3)
-	echo "$cmd"
+	echo "$cmd" |grep "no pip3"
+	if [ 0 -eq $? ];then
+		echo "install pip3" >> install.log	
+		#install_pip
+	fi 
+	
 	$cmd install ipython 
 	
 	if [ 0 -eq $? ] ;then 
-		echo "install success ful "
+		echo "install ipython success" >> install.log
 	else
-		echo 'install failed '
+		echo 'install ipython failed ' >> install.log
 		exit 1
 	fi
 }
@@ -70,9 +96,22 @@ function init_install_python(){
 	modify_pip_source
 	install_ipython
 }
+
+function check_dependence(){
+	yum install zlib* -y
+
+	var=$(rpm -qa | grep  openssl-devel |wc -l)
+	if [ $var == 0 ];then
+		yum install openssl openssl-devel -y
+	fi
+
+	echo "check done"
+}
+
 #########################################################
 
 function main(){
+    check_dependence
     init_install_python
 }
 
