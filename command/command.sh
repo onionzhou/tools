@@ -77,6 +77,13 @@ function git_command(){
 
 	git config --global --unset https.proxy
 	
+	#git 添加user email 
+	git config --global user.name username
+	git config --global user.email username@email.com
+	#git修改 user email 
+	git config --replace-all user.name "name"
+	git config --replace-all user.email "123@qq.com"
+	
 	#git 修改commit 注释
 	git commit --amend
 	
