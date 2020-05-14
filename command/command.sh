@@ -5,7 +5,7 @@
 function command(){
 	
 	# 批量kill httpd 进程
-	ps -ef | grep httpd | grep -v grep | cut -c 9-15 |xarges kill -9
+	ps -ef | grep httpd | grep -v grep | cut -c 9-15 |xargs kill -9
 	
 	#查看常用端口
 	netstat -nlpt
@@ -80,6 +80,9 @@ function git_command(){
 	#git 添加user email 
 	git config --global user.name username
 	git config --global user.email username@email.com
+	#git 添加局部email 
+	git config --local user.name  username 
+	git config --local user.email username@email.com
 	#git修改 user email 
 	git config --replace-all user.name "name"
 	git config --replace-all user.email "123@qq.com"
