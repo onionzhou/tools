@@ -1,0 +1,10 @@
+linux:
+ hosts:
+ - ip: 10.0.1.132
+   port: 22
+   user: root
+   passwd: '475869@hjl.cn'
+   softname:
+   - mysql_v8.0.24
+   - telnet
+windows:
