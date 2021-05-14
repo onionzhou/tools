@@ -75,7 +75,7 @@ def exec_cmd_with_log(cmd):
     code, out = exec_cmd(cmd)
     if code != 0:
         LOG.info('execution failed ....')
-        LOG.info('code={},out={}'.format(code,out.decode('utf-8')))
+        LOG.info('code={},out={}'.format(code, out.decode('utf-8')))
         exit(-1)
     LOG.info('the execution is complete,It takes {:.2f}'.format(time.time() - start_time))
 
@@ -99,9 +99,9 @@ def modify_mysql_conf():
     LOG.info('#######################<modify_mysql_conf>#####################################')
     child = pexpect.spawn("docker exec -it mysql_v8.0.24 bash -c 'mysql -u root -h 127.0.0.1 --password=123456'")
     # child.expect(pexpect.EOF)
-    # fout = open('modify_mysql.log', 'ab')
-    child.logfile = sys.stdout
-    # child.logfile = fout
+    fout = open('modify_mysql.log', 'ab')
+    # child.logfile = sys.stdout
+    child.logfile = fout
 
     mysql_cmd_list = [
         'use mysql;',
@@ -116,8 +116,8 @@ def modify_mysql_conf():
         child.expect('mysql>')
         child.sendline(cmd)
 
-    child.expect('~]#')
-    # fout.close()
+    # child.expect(['~]#','mysql>'])
+    fout.close()
     child.close()
 
 
