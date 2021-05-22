@@ -10,7 +10,6 @@ import subprocess
 import time
 import pexpect
 import sys
-import argparse
 
 LOG = None
 
@@ -112,7 +111,6 @@ def modify_mysql_conf():
 
     for cmd in mysql_cmd_list:
         LOG.info('cmd: {}'.format(cmd))
-        # time.sleep(1)
         child.expect('mysql>')
         child.sendline(cmd)
 
@@ -143,9 +141,27 @@ def install_mysql():
     modify_mysql_conf()
 
 
-def main():
-    import sys
+def install_telnet():
+    gen_telnet_conf = 'cat >/etc/xinetd.d/telnet<<EOF\n' \
+                      'service telnet\n' \
+                      '{\n' \
+                      'disable = no\nflags = REUSE\nsocket_type	= stream\n' \
+                      'wait	= no\nuser = root\nserver = /usr/sbin/in.telnetd\n' \
+                      'log_on_failure	+= USERID\ninstances = 1000\ncps =100 2\nper_source = 1000\n' \
+                      '}\n' \
+                      'EOF\n'
 
+    cmd_list = ['yum install telnet telnet-server xinetd -y',
+                'mv /etc/securetty  /etc/securetty.bak',
+                gen_telnet_conf,
+                'service xinetd start',
+                'systemctl stop firewalld.service'
+                ]
+    for cmd in cmd_list:
+        exec_cmd_with_log(cmd)
+    LOG.info('install telnet server sucess......')
+
+def main():
     init_log()
 
     code, err = exec_cmd('docker -v')
@@ -164,6 +180,7 @@ def main():
             install_mysql()
         elif soft == 'telnet':
             LOG.info('install soft telnet...')
+            install_telnet()
 
 
 if __name__ == '__main__':
