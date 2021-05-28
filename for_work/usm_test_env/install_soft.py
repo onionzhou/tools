@@ -119,7 +119,7 @@ def modify_mysql_conf():
     child.close()
 
 
-def install_mysql():
+def install_mysql(version):
     cmd_str = 'systemctl  status  docker'
     code, out = exec_cmd(cmd_str)
     if code == 3:
@@ -130,15 +130,28 @@ def install_mysql():
     elif code == 0:
         LOG.info('docker has started')
 
-    cmd_list = ['docker pull mysql:8.0.24 ',
-                'docker run -itd --name mysql_v8.0.24 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql']
+    if version == 'mysql_v8.0.24':
+        cmd_list = ['docker pull mysql:8.0.24 ',
+                    'docker run -itd --name mysql_v8.0.24 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql']
 
-    for cmd_str in cmd_list:
-        exec_cmd_with_log(cmd_str)
+        for cmd_str in cmd_list:
+            exec_cmd_with_log(cmd_str)
 
-    LOG.info('sleeping 30s,waiting docker run mysql... ')
-    time.sleep(30)
-    modify_mysql_conf()
+        LOG.info('sleeping 30s,waiting docker run mysql... ')
+        time.sleep(30)
+        modify_mysql_conf()
+    elif version == 'mysql_v5.7':
+        mysql_start_cmd = 'docker run -p 3307:3306 --name mysql_v5.7 ' \
+                          '-v $PWD/conf:/etc/mysql ' \
+                          '-v $PWD/logs:/var/log/mysql ' \
+                          '-v $PWD/data:/var/lib/mysql ' \
+                          '-e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7 '
+
+        cmd_list = ['docker pull mysql:5.7',
+                    'mkdir -p /home/docker/mysql57',
+                    'cd /home/docker/mysql57;' + mysql_start_cmd]
+        for cmd_str in cmd_list:
+            exec_cmd_with_log(cmd_str)
 
 
 def install_telnet():
@@ -175,9 +188,10 @@ def main():
 
     # 安装mysql
     for soft in soft_list:
-        if soft == 'mysql_v8.0.24':
-            LOG.info('install soft mysql_v8.0.24...')
-            install_mysql()
+        if soft == 'mysql_v8.0.24' or soft == 'mysql_v5.7':
+            LOG.info('install soft {}...'.format(soft))
+            install_mysql(soft)
+
         elif soft == 'telnet':
             LOG.info('install soft telnet...')
             install_telnet()

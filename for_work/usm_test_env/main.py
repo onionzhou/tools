@@ -92,12 +92,15 @@ def init_env(ip,port,username,passwd,soft_list):
     # username = 'root'
     # passwd = '475869@hjl.cn'
 
-    LOG.info('{}--{}--{}--{}--{}'.format(ip,port,username,passwd,soft_list))
+    LOG.info('{}--{}--{}--{}--{}'.format(ip, port, username, passwd, soft_list))
+    LOG.info('{}--{}--{}--{}--{}'.format(type(ip), type(port), type(username), type(passwd), type(soft_list)))
 
     soft_str=' '.join(soft_list)
     print(soft_str)
     client = RemoteLoginApi(ip, port, username, passwd)
     client.connect()
+
+    print('connect sucess!!!')
     code, out, err = client.exec_cmd('python3 -V')
     if code == 0:
         LOG.info('python3 installed..')
