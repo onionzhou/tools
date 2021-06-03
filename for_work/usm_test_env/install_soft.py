@@ -84,7 +84,8 @@ def install_docker():
                 'yum install -y yum-utils device-mapper-persistent-data lvm2',
                 'yum-config-manager --add-repo \
                   https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo',
-                'yum install docker-ce docker-ce-cli containerd.io'
+                'yum install docker-ce docker-ce-cli containerd.io',
+                'systemctl enable docker'
                 ]
 
     for cmd_str in cmd_list:
@@ -132,7 +133,7 @@ def install_mysql(version):
 
     if version == 'mysql_v8.0.24':
         cmd_list = ['docker pull mysql:8.0.24 ',
-                    'docker run -itd --name mysql_v8.0.24 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql']
+                    'docker run --restart always -itd --name mysql_v8.0.24 -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 mysql']
 
         for cmd_str in cmd_list:
             exec_cmd_with_log(cmd_str)
@@ -141,7 +142,7 @@ def install_mysql(version):
         time.sleep(30)
         modify_mysql_conf()
     elif version == 'mysql_v5.7':
-        mysql_start_cmd = 'docker run -p 3307:3306 --name mysql_v5.7 ' \
+        mysql_start_cmd = 'docker run --restart always -p 3307:3306 --name mysql_v5.7 ' \
                           '-v $PWD/conf:/etc/mysql ' \
                           '-v $PWD/logs:/var/log/mysql ' \
                           '-v $PWD/data:/var/lib/mysql ' \
@@ -168,7 +169,9 @@ def install_telnet():
                 'mv /etc/securetty  /etc/securetty.bak',
                 gen_telnet_conf,
                 'service xinetd start',
-                'systemctl stop firewalld.service'
+                'systemctl enable xinetd.service',
+                'systemctl stop firewalld.service',
+                'systemctl disable firewalld.service',
                 ]
     for cmd in cmd_list:
         exec_cmd_with_log(cmd)
