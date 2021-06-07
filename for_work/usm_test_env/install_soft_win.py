@@ -10,6 +10,7 @@ import subprocess
 import platform
 import time
 import os
+import sys
 
 LOG = None
 
@@ -78,19 +79,85 @@ def connect_test():
     print(ret.std_out.decode('gbk'))
 
 
-def win_download(s_path, d_path):
-    wintest = winrm.Session('http://10.0.6.177:5985/wsman', auth=('administrator', '1qaz@WSX'))
+class InstallWinSoft():
+    def __init__(self, ip, username, passwd):
+        self.ip = ip
+        self.username = username
+        self.passwd = passwd
+        self.wintest = winrm.Session('http://{}:5985/wsman'.format(self.ip), auth=(self.username, self.passwd))
 
-    cmd_str = 'if not exist c:\\tmp md c:\\tmp'
+    def init_winrm(self):
+        return self
 
-    ret = wintest.run_cmd(cmd_str)
-    LOG.info(ret.std_out.decode('gbk'))
+    def win_download(self, s_path, d_path):
+        # bat shell
+        cmd_str = 'if not exist c:\\tmp md c:\\tmp'
 
-    cmd = "powershell (new-object Net.WebClient).DownloadFile('{}','{}')".format(s_path, d_path)
-    print(cmd)
-    ret = wintest.run_cmd('cd c:/tmp && {}'.format(cmd))
-    print(ret.std_out.decode('gbk'))
-    LOG.info(ret.std_out.decode('gbk'))
+        ret = self.wintest.run_cmd(cmd_str)
+        LOG.info(ret.std_out.decode('gbk'))
+
+        cmd = "powershell (new-object Net.WebClient).DownloadFile('{}','{}')".format(s_path, d_path)
+        LOG.info(cmd)
+
+        ret = self.wintest.run_cmd('cd c:/tmp && {}'.format(cmd))
+        LOG.info(ret.std_out.decode('gbk'))
+
+        # ret = self.wintest.run_cmd('ipconfig /all')
+        # LOG.info(ret.std_out.decode('gbk'))
+
+    def install_python(self, pythonname='python-3.6.7.exe'):
+        '''
+        安装python环境，并初始化pip和安装第三方python 包
+        :param pythonname: python 包名
+        :return:
+        '''
+        cmd_str = 'if exist "c:\\tmp\\{}" (echo ok) else (echo err)'.format(pythonname)
+        ret = self.wintest.run_cmd(cmd_str)
+        value = ret.std_out.decode('gbk').strip()
+        print(value)
+        if value == 'err':
+            LOG.info('{} is not exist,exit -1'.format(pythonname))
+            exit(-1)
+
+        LOG.info('install {}'.format(pythonname))
+        install_cmd = '{} /quiet InstallAllUsers=1 PrependPath=1 ' \
+                      'Include_test=0 TargetDir=c:\python3'.format(pythonname)
+        ret = self.wintest.run_cmd('cd c:\\tmp && {}'.format(install_cmd))
+        if ret.status_code == 0:
+            LOG.info('{} install sucess....'.format(pythonname))
+        else:
+            LOG.info(ret)
+
+        self._conf_pip_sourcce()
+        self._pip_install_pack()
+
+    def _conf_pip_sourcce(self):
+        # 配置python 源
+        LOG.info(sys._getframe().f_code.co_name)
+
+        cmd_str = 'if not exist C:\\Users\Administrator\pip md C:\\Users\Administrator\pip'
+        ret = self.wintest.run_cmd(cmd_str)
+        LOG.info(ret)
+
+        cmd_str_list = ['echo [global] > C:\\Users\Administrator\pip\pip.ini ',
+                        'echo timeout = 6000 >> C:\\Users\Administrator\pip\pip.ini',
+                        'echo index-url =https://pypi.tuna.tsinghua.edu.cn/simple >> C:\\Users\Administrator\pip\pip.ini',
+                        'echo [install] >> C:\\Users\Administrator\pip\pip.ini',
+                        'echo trusted-host=pypi.tuna.tsinghua.edu.cn >> C:\\Users\Administrator\pip\pip.ini']
+
+        for cmd_str in cmd_str_list:
+            ret = self.wintest.run_cmd(cmd_str)
+            print(ret)
+
+    def _pip_install_pack(self):
+        cmd_str_list = ['pip install pywinauto']
+        for cmd_str in cmd_str_list:
+            LOG.info('runcmd {}'.format(cmd_str))
+            ret = self.wintest.run_cmd(cmd_str)
+            if ret.status_code == 0:
+                LOG.info('install sucess...')
+            else:
+                LOG.info(ret)
 
 
 def stop_http_server():
@@ -109,16 +176,38 @@ def start_http_server():
         os.system(cmd_str)
 
 
-def main():
-    init_log()
-    start_http_server()
+def init_remote_env(ip, username, passwd):
+    '''
+    初始化win远程机的环境
+    python
+    :return:
+    '''
+    install = InstallWinSoft(ip, username, passwd)
+
+    # 初始化pyton3.6.7 环境
     s_url = 'http://10.0.1.220:8000/win/python-3.6.7.exe'
     d_path = 'c:/tmp/python-3.6.7.exe'
-    win_download(s_url, d_path)
+    install.win_download(s_url, d_path)
+    install.install_python()
+
+
+def init_local_env():
+    '''
+    初始化本地linux服务器环境,此处跳板机也是本地安装包服务器环境
+    :return:
+    '''
+    init_log()
+    start_http_server()
+
+
+def main():
+    init_local_env()
+
+    ip = '10.0.6.177'
+    username = 'administrator'
+    passwd = '1qaz@WSX'
+    init_remote_env(ip, username, passwd)
 
 
 if __name__ == '__main__':
     main()
-    # connect_test()
-    # init_log()
-    # start_http_server()
