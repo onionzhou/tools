@@ -159,6 +159,37 @@ class InstallWinSoft():
             else:
                 LOG.info(ret)
 
+    def install_bandzip(self):
+        '''
+        安装解压软件
+        :return:
+        '''
+        s_path = 'http://10.0.1.220:8000/win/BANDIZIP-SETUP.EXE'
+        d_path = 'c:/tmp/BANDIZIP-SETUP.EXE'
+        self.win_download(s_path, d_path)
+        cmd_str = 'BANDIZIP-SETUP.EXE /auto'
+        ret = self.wintest.run_cmd('cd c:\\tmp && {}'.format(cmd_str))
+        if ret.status_code == 0:
+            LOG.info('install BANDIZIP sucess...')
+        else:
+            LOG.info(ret)
+
+    def install_king(self):
+        # 金仓7 客户端 kdb-7-win.zip
+        s_path = 'http://10.0.1.220:8000/win/kdb-7-win.zip'
+        d_path = 'c:/tmp/kdb-7-win.zip'
+        # 下载
+        LOG.info('download kdb-7-win')
+        self.win_download(s_path, d_path)
+        # 解压
+        LOG.info('unzip kdb-7-win')
+        cmd_str = 'Bandizip.exe bx -y -o:c:\\tmp\\kdb-7  C:\\tmp\\kdb-7-win.zip'
+        ret = self.wintest.run_cmd('cd C:\Program Files\Bandizip && {} '.format(cmd_str))
+        if ret.status_code == 0:
+            LOG.info('unzip kdb-7-win.zip  to kdb-7 sucess...')
+        else:
+            LOG.info(ret)
+
 
 def stop_http_server():
     cmd_str = "ps -ef | grep 'python3 -m http.server' | grep -v grep | cut -c 9-15 |xargs kill -9"
@@ -189,6 +220,9 @@ def init_remote_env(ip, username, passwd):
     d_path = 'c:/tmp/python-3.6.7.exe'
     install.win_download(s_url, d_path)
     install.install_python()
+    install.install_bandzip()
+
+    # install.install_king()
 
 
 def init_local_env():

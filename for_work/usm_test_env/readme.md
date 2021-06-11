@@ -25,6 +25,7 @@ linux:
    - mysql_v8.0.24  # 需要安装的软件名
    - telnet
    - mysql_v5.7
+   - db2_v10.5
 windows:
 
 ```
@@ -35,6 +36,7 @@ windows:
   - mysql  v8.0  docker版
   - telnet
   - mysql v 5.7  docker版本
+  - db2_10.5  （docker） 
 
 ### 软件名
 
@@ -43,15 +45,17 @@ linux :
 	mysql_v8.0.24
 	telnet
 	mysql_v5.7
+	db2_v10.5
 ```
 
 ### 软件端口
 
-| 协议          | 端口 |
-| ------------- | ---- |
-| mysql_v8.0.24 | 3306 |
-| telnet        | 23   |
-| mysql_v5.7    | 3307 |
+| 协议          | 端口  |
+| ------------- | ----- |
+| mysql_v8.0.24 | 3306  |
+| telnet        | 23    |
+| mysql_v5.7    | 3307  |
+| db2_v10.5     | 50000 |
 
 
 
@@ -64,6 +68,12 @@ linux :
   - 账号/密码    root/123456
 - mysql_v5.7
   - 账号/密码   root/123456
+  
+- db2_v10.5 
+
+  - 账号/密码  db2inst1/db2inst1   dbname：mydb  
+
+    
 
 ### 安装日志
 

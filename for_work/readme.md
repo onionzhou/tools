@@ -10,4 +10,5 @@
   - 支持centos7  mysql 8.0  (docker版本) 部署
   - 支持 centos7  telnet 部署 
   - 支持centos7  mysql 5.7  (docker版本) 部署
+  - 支持centos7  db2_v10.1  (docker版本) 部署
 

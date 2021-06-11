@@ -177,6 +177,25 @@ def install_telnet():
         exec_cmd_with_log(cmd)
     LOG.info('install telnet server sucess......')
 
+
+def install_db2(version):
+    if version == 'db2_v10.5':
+        cmd_list = ['export  http_proxy="http://10.0.0.10:1080"',
+                    'systemctl restart docker',
+                    'docker pull jimmyhans/db210.5',
+                    ]
+        for cmd_str in cmd_list:
+            exec_cmd_with_log(cmd_str)
+            time.sleep(1)
+        cmd_list = [
+            'docker run --restart always -itd  --privileged=true --name="db2docker"  -p 50000:50000 jimmyhans/db210.5',
+            'docker exec db2docker ./createDB',
+        ]
+        for cmd_str in cmd_list:
+            exec_cmd_with_log(cmd_str)
+            time.sleep(5)
+
+
 def main():
     init_log()
 
@@ -199,6 +218,9 @@ def main():
             LOG.info('install soft telnet...')
             install_telnet()
 
+        elif soft == 'db2_v10.5':
+            LOG.info('install soft {}...'.format(soft))
+            install_db2(soft)
 
 if __name__ == '__main__':
     # yum install python3 -y

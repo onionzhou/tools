@@ -10,6 +10,7 @@
 import paramiko
 import os
 import yaml
+import time
 
 LOG = None
 
@@ -63,7 +64,20 @@ class RemoteLoginApi():
     def connect(self):
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.ssh.connect(hostname=self.ip, port=self.port, username=self.username, password=self.passwd)
+        count = 0
+        while True:
+            try:
+                self.ssh.connect(hostname=self.ip, port=self.port, username=self.username, password=self.passwd)
+                break
+            except Exception as e:
+                LOG.info('connect failed , sleep 1s ,reconnect.....')
+                LOG.info(e)
+                time.sleep(1)
+                count += 1
+            if count == 5:
+                LOG.info('reconnect {},connect failed ....'.format(count))
+                exit(-1)
+
         self.sftp = self.ssh.open_sftp()
 
         return self

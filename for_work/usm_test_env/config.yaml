@@ -3,9 +3,10 @@ linux:
  - ip: 10.0.1.132
    port: 22
    user: root
-   passwd: '123456'
+   passwd: '123456' #475869@hjl.cn
    softname:
    - mysql_v8.0.24
    - mysql_v5.7
    - telnet
+   - db2_v10.5
 windows:
