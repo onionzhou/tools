@@ -1,3 +1,7 @@
+common:
+ method: shell #  部署方式 python 或 shell
+ deploy_host_os: linux   #部署主机系统可选(linux windows all),
+
 linux:
  hosts:
  - ip: 10.0.1.132
@@ -9,4 +13,9 @@ linux:
    - mysql_v5.7
    - telnet
    - db2_v10.5
+   - zabbix_client  # 部署方式shell脚本
 windows:
+
+zabbix_client:  # 相关配置文件
+    zabbix_server_ip: 10.0.1.220
+    zabbix_client_name: usm200_31.131

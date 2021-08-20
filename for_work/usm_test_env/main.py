@@ -14,6 +14,7 @@ import time
 
 LOG = None
 
+SOFT_PATH = '/home/soft_tool'
 
 def init_log():
     '''
@@ -67,7 +68,8 @@ class RemoteLoginApi():
         count = 0
         while True:
             try:
-                self.ssh.connect(hostname=self.ip, port=self.port, username=self.username, password=self.passwd)
+                self.ssh.connect(hostname=self.ip, port=self.port,
+                                 username=self.username, password=self.passwd, allow_agent=False)
                 break
             except Exception as e:
                 LOG.info('connect failed , sleep 1s ,reconnect.....')
@@ -100,59 +102,82 @@ class RemoteLoginApi():
         LOG.info(ret)
 
 
-def init_env(ip,port,username,passwd,soft_list):
+def init_env(ip, port, username, passwd, soft_list, deploy_method):
     # ip = '10.0.1.132'
     # port = 22
     # username = 'root'
     # passwd = '475869@hjl.cn'
 
     LOG.info('{}--{}--{}--{}--{}'.format(ip, port, username, passwd, soft_list))
-    LOG.info('{}--{}--{}--{}--{}'.format(type(ip), type(port), type(username), type(passwd), type(soft_list)))
 
-    soft_str=' '.join(soft_list)
+    soft_str = ' '.join(soft_list)
     print(soft_str)
     client = RemoteLoginApi(ip, port, username, passwd)
     client.connect()
 
     print('connect sucess!!!')
-    code, out, err = client.exec_cmd('python3 -V')
-    if code == 0:
-        LOG.info('python3 installed..')
-        LOG.info(out)
 
-    else:
-        cmd_list = ['yum install python3 -y', 'pip3 install pexpect']
-        for cmd in cmd_list:
-            LOG.info('exce "{}".....'.format(cmd))
-            code, out, err = client.exec_cmd(cmd)
-            if code == 0:
-                LOG.info('cmd exce ok....')
-            else:
-                LOG.info(out)
-                LOG.info(err)
-                exit(-1)
-    # 上传软件
+    if deploy_method == 'python':
 
-    local_path = os.path.join(os.getcwd(), 'install_soft.py')
-    client.upload_file(local_path, '/root/install_soft.py')
+        code, out, err = client.exec_cmd('python3 -V')
+        if code == 0:
+            LOG.info('python3 installed..')
+            LOG.info(out)
 
-    code, out, err = client.exec_cmd('python3 /root/install_soft.py {}'.format(soft_str))
-    if code == 0:
-        LOG.info('python3 /root/install_soft.py {}'.format(soft_str))
-        LOG.debug(out)
-    else:
-        LOG.info(code)
-        LOG.info(out)
-        LOG.info(err)
+        else:
+            cmd_list = ['yum install python3 -y', 'pip3 install pexpect']
+            for cmd in cmd_list:
+                LOG.info('exce "{}".....'.format(cmd))
+                code, out, err = client.exec_cmd(cmd)
+                if code == 0:
+                    LOG.info('cmd exce ok....')
+                else:
+                    LOG.info(out)
+                    LOG.info(err)
+                    exit(-1)
+
+        # 上传软件
+        local_path = os.path.join(os.getcwd(), 'scripts', 'install_soft.py')
+        client.upload_file(local_path, '/root/install_soft.py')
+
+        code, out, err = client.exec_cmd('python3 /root/install_soft.py {}'.format(soft_str))
+        if code == 0:
+            LOG.info('python3 /root/install_soft.py {}'.format(soft_str))
+            LOG.debug(out)
+        else:
+            LOG.info(code)
+            LOG.info(out)
+            LOG.info(err)
+    elif deploy_method == 'shell':
+        local_path = os.path.join(os.getcwd(), 'scripts', 'install_soft.sh')
+        client.upload_file(local_path, '/root/install_soft.sh')
+        for soft in soft_list:
+            if soft == 'zabbix_client':
+                LOG.info('upload zabbix client to {}'.format(ip))
+                local_path = os.path.join(SOFT_PATH, 'linux', 'zabbix-agent-x86_64.rpm')
+                print(local_path)
+                client.upload_file(local_path, '/root/zabbix-agent.rpm')
+
+                conf = read_yaml_to_json()
+                zabbix_server_ip = conf.get('zabbix_client').get('zabbix_server_ip')
+                zabbix_client_name = conf.get('zabbix_client').get('zabbix_client_name')
+
+                param_str = soft + ' ' + zabbix_server_ip + ' ' + zabbix_client_name
+                # print(param_str)
+                LOG.info('bash /root/install_soft.sh {}'.format(param_str))
+                code, out, err = client.exec_cmd('bash /root/install_soft.sh {}'.format(param_str))
+                print(code)
+
     log_local_path = os.path.join(os.getcwd(), 'install.log')
     client.download_file('/root/install.log', log_local_path)
 
 
 if __name__ == '__main__':
+
     init_log()
-    # init_env()
     conf = read_yaml_to_json()
-    print(conf.get('linux'))
+    deploy_method = conf.get('common').get('method')
+
     host_list = conf.get('linux').get('hosts')
     for host in host_list:
         ip = host.get('ip')
@@ -160,6 +185,5 @@ if __name__ == '__main__':
         user = host.get('user')
         passwd = host.get('passwd')
         soft_list = host.get('softname')
-        print(ip,port,user,passwd,soft_list)
-        init_env(ip,port,user,passwd,soft_list)
-
+        print(ip, port, user, passwd, soft_list)
+        init_env(ip, port, user, passwd, soft_list, deploy_method)

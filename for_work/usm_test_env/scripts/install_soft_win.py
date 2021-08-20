@@ -202,7 +202,6 @@ def start_http_server():
     print(out.split())
     if out.strip() != '1':
         LOG.info('start http server !!!!!')
-
         cmd_str = 'cd /home/soft_tool; nohup python3 -m http.server &'
         os.system(cmd_str)
 

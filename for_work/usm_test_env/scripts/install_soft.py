@@ -222,6 +222,7 @@ def main():
             LOG.info('install soft {}...'.format(soft))
             install_db2(soft)
 
+
 if __name__ == '__main__':
     # yum install python3 -y
     # pip3 install pexpect
