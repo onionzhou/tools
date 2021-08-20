@@ -75,7 +75,8 @@ function sys_config(){
 
 function modify_centos7_yumsource(){
 
-	wget http://mirrors.aliyun.com/repo/Centos-7.repo
+	#wget http://mirrors.aliyun.com/repo/Centos-7.repo
+    curl -O http://mirrors.aliyun.com/repo/Centos-7.repo
 	mv  /etc/yum.repos.d/CentOS-Base.repo  /etc/yum.repos.d/CentOS-Base.repo.$(date +%F%H%M%S)
 	cp  ./Centos-7.repo /etc/yum.repos.d/CentOS-Base.repo
 
@@ -98,6 +99,7 @@ function cmd_install(){
 	yum install pcre-devel -y
 	yum install pcre -y
 	yum install openssl openssl-devel -y
+    yum install net-tools -y
 	
 }
 
