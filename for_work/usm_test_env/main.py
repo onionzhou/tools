@@ -11,6 +11,7 @@ import paramiko
 import os
 import yaml
 import time
+from scripts.zabbix_api import add_host_to_zabbix_server
 
 LOG = None
 
@@ -167,6 +168,10 @@ def init_env(ip, port, username, passwd, soft_list, deploy_method):
                 LOG.info('bash /root/install_soft.sh {}'.format(param_str))
                 code, out, err = client.exec_cmd('bash /root/install_soft.sh {}'.format(param_str))
                 print(code)
+                LOG.info('add host to zabbix server .....server={},client={},{}'.format(zabbix_server_ip,
+                                                                                        zabbix_client_name,
+                                                                                        ip))
+                add_host_to_zabbix_server(zabbix_server_ip, zabbix_client_name, ip)
 
     log_local_path = os.path.join(os.getcwd(), 'install.log')
     client.download_file('/root/install.log', log_local_path)
