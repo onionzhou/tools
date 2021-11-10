@@ -24,7 +24,7 @@ class Zabbix():
         # print(ret.text)
         return ret.json()
 
-    def get_login_token(self, name, passwd):
+    def _get_login_token(self, name, passwd):
         payload = {
             "jsonrpc": "2.0",
             "method": "user.login",
@@ -247,8 +247,165 @@ class Zabbix():
 
         return ret.get('result').get('dashboardids')
 
+    def get_dashboard(self, authtoken):
+        '''
+        :param authtoken:  认证token
+        :return:  字典  k=dashboard名，v=dashboard id
+        {'Global view': '1', 'Zabbix server health': '2'}
+        '''
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "dashboard.get",
+            "params": {
+                "output": "extend",
+                "selectPages": "extend",
+                "selectUsers": "extend",
+                "selectUserGroups": "extend",
 
-def add_host_to_zabbix_server(serverip,hostname, hostip):
+            },
+            "auth": authtoken,
+            "id": 1
+        }
+
+        ret = self._post_data(payload)
+        # print(ret)
+        tmp_dict = {}
+        for i in ret.get('result'):
+            k = i.get('name')
+            v = i.get('dashboardid')
+            tmp_dict[k] = v
+        return tmp_dict
+
+    def del_dashboard(self, autoken: str, ids_list: list) -> dict:
+        '''
+
+        :param autoken:
+        :param ids_list:
+        :return:
+        '''
+
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "dashboard.delete",
+            "params": ids_list,
+            "auth": autoken,
+            "id": 1
+        }
+
+        print(payload)
+        ret = self._post_data(payload)
+        return ret.get('result')
+
+    def del_dashboard_by_name(self, authtoken: str, name: str):
+        '''
+        通过dashboard name 删除 dashboard
+        :param authtoken:
+        :param name:
+        :return:
+        '''
+        ret = self.get_dashboard(authtoken)
+        dashboardid = ret.get(name)
+        if dashboardid is None:
+            raise Exception('zabbix server is not exist < {} > dashboard'.format(name))
+
+        ids_list = []
+        ids_list.append(dashboardid)
+        return self.del_dashboard(authtoken, ids_list)
+
+    def get_host_id(self, authtoken: str, host_list: str):
+        '''
+        :param authtoken:
+        :param host_list:
+        :return: dict , key为主机名，value为主机id
+        '''
+        # host_list = ['usm_112']
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "host.get",
+            "params": {
+                "filter": {
+                    "host": host_list
+                }
+            },
+            "auth": authtoken,
+            "id": 1
+        }
+
+        ret = self._post_data(payload)
+
+        tmp_dict = {}
+        for i in ret.get('result'):
+            k = i.get('host')
+            v = i.get('hostid')
+            tmp_dict[k] = v
+
+        return tmp_dict
+
+    def del_host(self, authtoken: str, hostids_list: list):
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "host.delete",
+            "params": hostids_list,
+            "auth": authtoken,
+            "id": 1
+        }
+        ret = self._post_data(payload)
+        print(ret)
+        return ret.get('result')
+
+    def del_host_by_name(self, authtoken: str, host_name: str):
+        host_name_list = []
+        host_id_list = []
+        host_name_list.append(host_name)
+
+        ret = self.get_host_id(authtoken, host_name_list)
+        for v in ret.values():
+            host_id_list.append(v)
+
+        return self.del_host(authtoken, host_id_list)
+
+    def get_audit_log(self, authtoken):
+
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "auditlog.get",
+            "params": {
+                "output": "extend",
+                "sortfield": "clock",
+                "sortorder": "DESC",
+                "limit": 2
+            },
+            "auth": authtoken,
+            "id": 1
+        }
+        ret = self._post_data(payload)
+        print(ret)
+        return ret
+
+    def get_login_token(self, name, passwd):
+        import os
+        filename = 'auto.conf'
+        file_path = os.path.join(os.getcwd(), filename)
+
+        if not os.path.exists(file_path):
+            print(1)
+            admintoken = self._get_login_token(name, passwd)
+            with open(filename, mode='w') as f:
+                f.write(admintoken)
+            return admintoken
+
+        with open(filename, mode='r') as f:
+            admintoken = f.readline()
+
+        ret = self.get_audit_log(admintoken)
+        if 'error' in ret:
+            print('token invaid...,re-apply')
+            os.remove(file_path)
+            self.get_login_token(name,passwd)
+        else:
+            return admintoken
+
+def add_host_to_zabbix_server(serverip: str, hostname: str, hostip: str):
     '''
 
     :param serverip: 10.0.6.219
@@ -264,8 +421,8 @@ def add_host_to_zabbix_server(serverip,hostname, hostip):
 
     z = Zabbix(url, headers)
 
-    authtoken=z.get_login_token('Admin', 'zabbix')
-    # authtoken = 'e664cb26ff7458f22473aede07dfcfcb'
+    authtoken = z.get_login_token('Admin', 'zabbix')
+    # authtoken = '3e808686c7fd98c36e2b61e60fc6cdec'
     namelist = ['Templates/Modules', 'Linux servers']
     g_dict = z.get_group_id(authtoken, namelist)
 
@@ -283,32 +440,21 @@ def add_host_to_zabbix_server(serverip,hostname, hostip):
     z.add_dashboard(authtoken, hostname, data_dict)
 
 
-if __name__ == '__main__':
-    add_host_to_zabbix_server('10.0.6.219','usm_112','10.0.6.214')
+def del_host_from_zabbix_server(serverip, hostname):
+    headers = {
+        "Content-Type": "application/json"
+    }
 
-    # headers = {
-    #     "Content-Type": "application/json"
-    # }
-    #
-    # url = 'http://10.0.6.219/zabbix/api_jsonrpc.php'
-    #
-    # z = Zabbix(url, headers)
-    #
-    # # authtoken=z.get_login_token('Admin', 'zabbix')
-    # authtoken = 'e664cb26ff7458f22473aede07dfcfcb'
-    # namelist = ['Templates/Modules', 'Linux servers']
-    # g_dict = z.get_group_id(authtoken, namelist)
-    #
-    # tem_namelist = ['Linux CPU by Zabbix agent',
-    #                 'Linux filesystems by Zabbix agent',
-    #                 'Linux generic by Zabbix agent',
-    #                 'Linux memory by Zabbix agent',
-    #                 'Linux network interfaces by Zabbix agent'
-    #                 ]
-    # t_dict = z.get_template_id(authtoken, tem_namelist)
-    # host_id_list = z.add_monitoring_host(authtoken, 'usm2111', '2.1.1.1', g_dict, t_dict)
-    #
-    # data_dict = z.get_host_graph(authtoken, int(host_id_list[0]))
-    #
-    # z.add_dashboard(authtoken, '无语', data_dict)
-    # 10449
+    url = 'http://{}/zabbix/api_jsonrpc.php'.format(serverip)
+
+    z = Zabbix(url, headers)
+    authtoken = z.get_login_token('Admin', 'zabbix')
+    # authtoken = '3e808686c7fd98c36e2b61e60fc6cdec'
+    z.del_dashboard_by_name(authtoken, hostname)
+    ret = z.del_host_by_name(authtoken, hostname)
+    print(ret)
+
+
+if __name__ == '__main__':
+    add_host_to_zabbix_server('10.0.6.219', 'usm_112', '10.0.6.214')
+    del_host_from_zabbix_server('10.0.6.219', 'usm_112')

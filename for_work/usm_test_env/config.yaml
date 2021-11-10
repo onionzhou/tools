@@ -1,21 +1,16 @@
 common:
  method: shell #  部署方式 python 或 shell
- deploy_host_os: linux   #部署主机系统可选(linux windows all),
+ deploy_host_os: linux   #部署主机系统可选(linux windows all)
+ deploy_flag: 2  # 1: 代表部署资产环境 ，2: 代表部署zabbix 客户端监控, 3: 代表部署性能测试客户端环境
+ soft_path: '/home/soft_tool' #如果package目录中没有相关安装包，将在此路径下查询相关的安装包
 
-linux:
- hosts:
- - ip: 10.0.1.132
-   port: 22
-   user: root
-   passwd: '123456' #475869@hjl.cn
-   softname:
-   - mysql_v8.0.24
-   - mysql_v5.7
-   - telnet
-   - db2_v10.5
-   - zabbix_client  # 部署方式shell脚本
-windows:
-
-zabbix_client:  # 相关配置文件
-    zabbix_server_ip: 10.0.1.220
-    zabbix_client_name: usm200_31.131
+zabbix_client:  # 相关配置文件  shell
+ zabbix_client_ip:
+ - 10.0.6.218
+# - 10.0.1.37
+ zabbix_client_port: 22
+ account: root
+ passwd: '123456'
+ zabbix_server_ip: 10.0.6.219
+ zabbix_client_name: usm   # 实际 zabbix 服务上得名字为 {zabbix_client_name} + {zabbix_client_ip}
+ behavior: del   # zabbix 客户端行为  add/del add:表示添加客户端，del:表示删除

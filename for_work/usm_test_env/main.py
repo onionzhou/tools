@@ -11,11 +11,14 @@ import paramiko
 import os
 import yaml
 import time
+import threading
 from scripts.zabbix_api import add_host_to_zabbix_server
+from scripts.zabbix_api import del_host_from_zabbix_server
 
 LOG = None
 
-SOFT_PATH = '/home/soft_tool'
+SOFT_PATH = None
+
 
 def init_log():
     '''
@@ -53,7 +56,7 @@ def read_yaml_to_json(yaml_file=""):
             return conf
     except Exception as e:
         print(e)
-        raise Exception("读取 yaml 配置文件 为 Json 失败.")
+        raise Exception("读取 yaml 配置文件为 Json 失败.")
 
 
 class RemoteLoginApi():
@@ -86,7 +89,7 @@ class RemoteLoginApi():
         return self
 
     def exec_cmd(self, cmd):
-        stdin, stdout, stderr = self.ssh.exec_command(cmd, get_pty=True)
+        stdin, stdout, stderr = self.ssh.exec_command(cmd, get_pty=True, bufsize=1)
         # LOG.info(stdout.read().decode('utf-8'))
         # LOG.info(stderr.read().decode('utf-8'))
         status_code = stdout.channel.recv_exit_status()
@@ -116,7 +119,7 @@ def init_env(ip, port, username, passwd, soft_list, deploy_method):
     client = RemoteLoginApi(ip, port, username, passwd)
     client.connect()
 
-    print('connect sucess!!!')
+    print('connect {} sucess!!!'.format(ip))
 
     if deploy_method == 'python':
 
@@ -155,16 +158,20 @@ def init_env(ip, port, username, passwd, soft_list, deploy_method):
         for soft in soft_list:
             if soft == 'zabbix_client':
                 LOG.info('upload zabbix client to {}'.format(ip))
-                local_path = os.path.join(SOFT_PATH, 'linux', 'zabbix-agent-x86_64.rpm')
+                local_path = os.path.join(os.getcwd(), 'package', 'zabbix-agent-x86_64.rpm')
+                if not os.path.exists(local_path):
+                    local_path = os.path.join(SOFT_PATH, 'linux', 'zabbix-agent-x86_64.rpm')
                 print(local_path)
                 client.upload_file(local_path, '/root/zabbix-agent.rpm')
 
                 conf = read_yaml_to_json()
                 zabbix_server_ip = conf.get('zabbix_client').get('zabbix_server_ip')
-                zabbix_client_name = conf.get('zabbix_client').get('zabbix_client_name')
+
+                name_prefix = conf.get('zabbix_client').get('zabbix_client_name')
+
+                zabbix_client_name = name_prefix + '-' + ip
 
                 param_str = soft + ' ' + zabbix_server_ip + ' ' + zabbix_client_name
-                # print(param_str)
                 LOG.info('bash /root/install_soft.sh {}'.format(param_str))
                 code, out, err = client.exec_cmd('bash /root/install_soft.sh {}'.format(param_str))
                 print(code)
@@ -177,12 +184,12 @@ def init_env(ip, port, username, passwd, soft_list, deploy_method):
     client.download_file('/root/install.log', log_local_path)
 
 
-if __name__ == '__main__':
-
-    init_log()
-    conf = read_yaml_to_json()
-    deploy_method = conf.get('common').get('method')
-
+def install_soft(conf):
+    '''
+    安装资产软件服务如 telnet mysql ...
+    :param conf:
+    :return:
+    '''
     host_list = conf.get('linux').get('hosts')
     for host in host_list:
         ip = host.get('ip')
@@ -192,3 +199,127 @@ if __name__ == '__main__':
         soft_list = host.get('softname')
         print(ip, port, user, passwd, soft_list)
         init_env(ip, port, user, passwd, soft_list, deploy_method)
+
+
+def deploy_zabbix_client(conf):
+    '''
+    部署zabbix 客户端
+    :param conf:
+    :return:
+    '''
+    param = conf.get('zabbix_client')
+    ip_list = param.get('zabbix_client_ip')
+    port = param.get('zabbix_client_port')
+    account = param.get('account')
+    passwd = param.get('passwd')
+    behavior = param.get('behavior')
+
+    if behavior == 'add':
+        # zabbix_server_ip = param.get('zabbix_server_ip')
+        # zabbix_client_name = param.get('zabbix_client_name')
+        soft_list = ['zabbix_client']
+
+        LOG.info('start deploy_zabbix_client........')
+
+        LOG.info('{}--{}--{}--{}--{}'.format(ip_list, port, account, passwd, soft_list))
+
+        for ip in ip_list:
+            threading.Thread(target=init_env, args=(ip, port, account, passwd, soft_list, 'shell')).start()
+            # 修复 读取配置文件 报错 __file__ 未定义问题
+            time.sleep(1)
+    elif behavior == 'del':
+        LOG.info('clear zabbix client from zabbix server ')
+        # 清除服务端监控信息
+        zabbix_server_ip = param.get('zabbix_server_ip')
+        name_prefix = param.get('zabbix_client_name')
+        for ip in ip_list:
+            zabbix_client_name = name_prefix + '-' + ip
+            LOG.info('clear client {} info from zabbix server {}..'.format(zabbix_client_name,zabbix_server_ip))
+            threading.Thread(target=del_host_from_zabbix_server, args=(zabbix_server_ip, zabbix_client_name,)).start()
+            time.sleep(1)
+        # 清除监控主机相关安装客户端
+        for ip in ip_list:
+            LOG.info('clear client {} software.... '.format(ip))
+            client = RemoteLoginApi(ip, port, account, passwd)
+            client.connect()
+            code, out, err = client.exec_cmd('rpm -qa | grep zabbix-agent  |xargs rpm -e ')
+            print(code)
+
+
+def deploy_soft(ip, port, username, passwd, script_name, param_list=None, dep_pack_list=None):
+    '''
+    :param ip:
+    :param port:
+    :param username:
+    :param passwd:
+    :param script_name:
+    :param param_list:
+    :param dep_pack_list:  执行脚本的依赖包
+    :return:
+    '''
+
+    client = RemoteLoginApi(ip, port, username, passwd)
+    client.connect()
+    print('connect {} sucess!!!'.format(ip))
+
+    if dep_pack_list:
+        for pack in dep_pack_list:
+            local_path = os.path.join(os.getcwd(), 'package', pack)
+            if not os.path.exists(local_path):
+                local_path = os.path.join(SOFT_PATH, 'linux', pack)
+            remote_path = '/tmp/' + pack
+            client.upload_file(local_path, remote_path)
+    param_str = ''
+    if param_list:
+        param_str = ' '.join(param_list)
+        print(param_str)
+
+    local_path = os.path.join(os.getcwd(), 'scripts', script_name)
+    remote_path = '/tmp/' + script_name
+    client.upload_file(local_path, remote_path)
+
+    LOG.info('bash {} {}'.format(remote_path, param_str))
+    code, out, err = client.exec_cmd('bash {} {}'.format(remote_path, param_str))
+    print(out)
+    print(err)
+    print(code)
+    #
+    log_local_path = os.path.join(os.getcwd(), 'install.log')
+    client.download_file('/tmp/install.log', log_local_path)
+
+
+def deploy_performance_host_env(conf):
+    '''
+    部署性能主机环境
+    :param conf:
+    :return:
+    '''
+    param = conf.get('performance_host_env')
+    account = param.get('account')
+    passwd = param.get('passwd')
+    port = param.get('port')
+    ip_list = param.get('host_list')
+    script_name = 'performance_env_init.sh'
+    dep_pack_list = ['rdpexec.tar.gz', 'performance_pip_lib.tar.gz']
+    for ip in ip_list:
+        deploy_soft(ip, port, account, passwd, script_name, dep_pack_list=dep_pack_list)
+
+
+deploy_flag_dict = {
+    '1': install_soft,
+    '2': deploy_zabbix_client,
+    '3': deploy_performance_host_env
+}
+
+if __name__ == '__main__':
+    init_log()
+    conf = read_yaml_to_json()
+    deploy_method = conf.get('common').get('method')
+    deploy_flag = conf.get('common').get('deploy_flag')
+    SOFT_PATH = conf.get('common').get('soft_path')
+
+    install_obj = deploy_flag_dict.get(str(deploy_flag))
+    if not install_obj:
+        print('不支持的部署方式......')
+        exit(-1)
+    install_obj(conf)
